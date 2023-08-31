@@ -81,6 +81,93 @@ DB.delete = function(DBName) {
     delete DB.content[newName];
 }
 
+
+export class NBT_DB {
+    constructor(name) {
+        let newName = "_NBTDB_" + name;
+        this.name = newName;
+        if (!world.scoreboard.getObjective(newName)) {
+            world.scoreboard.addObjective(newName,newName);
+        }
+    }
+    
+    set(key,value) {
+        let obj = world.scoreboard.getObjective(this.name);
+        let json = JSON.stringify({
+            key: key,
+            value: this.get(key)
+        });
+        if (obj.hasParticipant(json)) {
+            obj.removeParticipant(json);
+        }
+        obj.setScore(JSON.stringify({
+            key: key,
+            value: value
+        }),0);
+    }
+    
+    get(key) {
+        for (let p of world.scoreboard.getObjective(this.name).getParticipants()) {
+            if (JSON.parse(p.displayName).key == key) {
+                return JSON.parse(p.displayName).value;
+            }
+        }
+    }
+    
+    has(key) {
+        return world.scoreboard.getObjective(this.name).hasParticipant(JSON.stringify({
+            key: key,
+            value: this.get(key)
+        }));
+    }
+    
+    keys() {
+        let arr = [];
+        for (let p of world.scoreboard.getObjective(this.name).getParticipants()) {
+            arr.push(JSON.parse(p.displayName).key);
+        }
+        return arr;
+    }
+    
+    values() {
+        let arr = [];
+        for (let p of world.scoreboard.getObjective(this.name).getParticipants()) {
+            arr.push(JSON.parse(p.displayName).value);
+        }
+        return arr;
+    }
+    
+    collection() {
+        let arr = [];
+        for (let p of world.scoreboard.getObjective(this.name).getParticipants()) {
+            arr.push(JSON.parse(p.displayName));
+        }
+        return arr;
+    }
+    
+    delete(key) {
+        world.scoreboard.getObjective(this.name).removeParticipant(JSON.stringify({
+            key: key,
+            value: this.get(key)
+        }));
+    }
+    
+    clear() {
+        world.scoreboard.removeObjective(this.name);
+        world.scoreboard.addObjective(this.name,this.name);
+    }
+    
+    size() {
+        return world.scoreboard.getObjective(this.name).getParticipants().length
+    }
+}
+
+NBT_DB.delete = function(DBName) {
+    let newName = "_NBTDB_" + DBName;
+    world.scoreboard.removeObjective(newName);
+}
+
+
 Player.prototype.setToDB = function(db, value) {
     db.set(this.name, value);
 }
@@ -102,11 +189,13 @@ for (let obj of world.scoreboard.getObjectives()) {
     }
 }
 
+
 for (let i=iterNum;(i<iterNum+DB.maxIteration && i<all.length);i++) {
         let obj = JSON.parse(all[i].displayName);
         DB.content[objNames[i]].set(obj.key, obj.value);
     }
     iterNum += DB.maxIteration;
+
 
 let interval = system.runInterval(() => {
     for (let i=iterNum;(i<iterNum+DB.maxIteration && i<all.length);i++) {
@@ -121,4 +210,3 @@ let interval = system.runInterval(() => {
         system.clearRun(interval);
     }
 },0)
-      
